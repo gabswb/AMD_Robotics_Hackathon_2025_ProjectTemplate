@@ -24,6 +24,11 @@
 - *Training*
 We trained ACT on a compact dataset of 150 episodes using one top camera, one scan-state camera, and two arm-mounted cameras, following the LeRobot training recipe for 35K steps on AMD MI300X. To improve robustness, we fine-tuned the model on 30 failure-case episodes.
 - *Inference*
+AMD Ryzen AI 9 HX370 PC
+OS: ubuntu 24.04
+ROCm v6.3+
+PyTorch v2.7.x
+LeRobot: v0.4.1
     - <video src=".assets/IMG_2818.mp4" controls></video>
 
 
