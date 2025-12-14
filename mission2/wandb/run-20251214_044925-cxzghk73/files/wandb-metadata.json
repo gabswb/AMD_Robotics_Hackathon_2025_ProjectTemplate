@@ -1,0 +1,51 @@
+{
+  "os":  "Linux-6.1.0-39-amd64-x86_64-with-glibc2.39",
+  "python":  "CPython 3.12.3",
+  "startedAt":  "2025-12-14T04:49:25.873500Z",
+  "args":  [
+    "--dataset.repo_id=tms-gvd/scan-v2-merged-01-02-fix0-cycling",
+    "--batch_size=64",
+    "--steps=30000",
+    "--output_dir=outputs/train/act-scan-v2-100-fix-cycling",
+    "--job_name=act-scan-v2-100-fix-cycling",
+    "--policy.repo_id=tms-gvd/act-scan-v2-100-fix-cycling",
+    "--policy.type=act",
+    "--policy.device=cuda",
+    "--policy.push_to_hub=true",
+    "--wandb.enable=true",
+    "--save_freq=5000"
+  ],
+  "program":  "/opt/venv/bin/lerobot-train",
+  "root":  "outputs/train/act-scan-v2-100-fix-cycling",
+  "host":  "robotics-jupyter-launcher-6763",
+  "executable":  "/opt/venv/bin/python",
+  "cpu_count":  160,
+  "cpu_count_logical":  160,
+  "gpu":  "AMD Instinct MI300X VF",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "2162185003008",
+      "used":  "941828169728"
+    }
+  },
+  "memory":  {
+    "total":  "2029207171072"
+  },
+  "gpu_amd":  [
+    {
+      "id":  "0",
+      "uniqueId":  "0xccf450de79a384d5",
+      "vbiosVersion":  "113-M3000100-103",
+      "performanceLevel":  "auto",
+      "maxPower":  "750.0",
+      "series":  "AMD Instinct MI300X VF",
+      "model":  "0x74b5",
+      "vendor":  "Advanced Micro Devices, Inc. [AMD/ATI]",
+      "sku":  "M3000100",
+      "sclkRange":  "500Mhz - 2100Mhz",
+      "mclkRange":  "900Mhz - 1300Mhz"
+    }
+  ],
+  "writerId":  "n9cfrobj09wpfmqpi55gddp1pz7bs26c"
+}
