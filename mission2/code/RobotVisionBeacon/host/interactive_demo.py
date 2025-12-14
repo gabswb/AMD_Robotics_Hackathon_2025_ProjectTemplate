@@ -27,7 +27,7 @@ async def input_loop(server: RobotVisionBeaconServer, any_key_red: bool) -> None
     loop = asyncio.get_running_loop()
     print("Interactive controls (single key, no Enter):")
     if any_key_red:
-        print("  any key = RED")
+        print("  any key can be RED (controlled by webapp interactive_mode)")
     print("  q = quit")
     print("Press keys in this terminal...")
 
@@ -46,8 +46,10 @@ async def input_loop(server: RobotVisionBeaconServer, any_key_red: bool) -> None
                 break
 
             if any_key_red:
-                print("-> RED")
-                await server.send_state(ColorState.RED)
+                # Webapp controls whether "any key" should trigger RED.
+                if server.get_interactive_mode() == "any_key_red":
+                    print("-> RED")
+                    await server.send_state(ColorState.RED)
                 continue
 
             if cmd == "g":

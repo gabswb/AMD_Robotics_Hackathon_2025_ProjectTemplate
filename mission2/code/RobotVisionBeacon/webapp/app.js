@@ -13,6 +13,9 @@ const DEFAULT_STATE = {
   cards: {},
   order: { warehouse: [], kid1: [], kid2: [] },
   wsUrl: "ws://localhost:8765",
+  console: {
+    interactiveMode: "passive", // passive | any_key_red (effective 'stopped' is derived from WS disconnected)
+  },
 };
 
 const Status = {
@@ -58,6 +61,9 @@ const els = {
   enterBtn: $("#enter-btn"),
   returnBtn: $("#return-btn"),
   columns: $("#columns"),
+  consoleInferStartBtn: $("#console-infer-start-btn"),
+  consoleInferPauseBtn: $("#console-infer-pause-btn"),
+  consoleScanBtn: $("#console-scan-btn"),
   drawer: $("#drawer"),
   recordedItemsBtn: $("#recorded-items-btn"),
   closeDrawerBtn: $("#close-drawer-btn"),
@@ -96,6 +102,15 @@ function init() {
   els.returnBtn.addEventListener("click", () => {
     navigate("welcome");
   });
+
+  els.consoleInferStartBtn?.addEventListener("click", () => {
+    toast("Robot inference: start (reserved).");
+  });
+  els.consoleInferPauseBtn?.addEventListener("click", () => {
+    toast("Robot inference: pause (reserved).");
+  });
+  els.consoleScanBtn?.addEventListener("click", onScanConsoleClick);
+  window.addEventListener("keydown", onConsoleKeyDown, true);
 
   els.recordedItemsBtn.addEventListener("click", toggleDrawer);
   els.closeDrawerBtn.addEventListener("click", closeDrawer);
@@ -168,6 +183,25 @@ function render() {
   renderBoard();
   renderDrawer();
   updateWsIndicator();
+  renderConsole();
+}
+
+function renderConsole() {
+  if (!els.consoleScanBtn) return;
+  const connected = ws?.readyState === WebSocket.OPEN;
+  const mode = connected ? state.console?.interactiveMode || "passive" : "stopped";
+  els.consoleScanBtn.classList.toggle("is-off", mode === "stopped");
+  els.consoleScanBtn.classList.toggle("is-running", mode === "passive");
+  els.consoleScanBtn.classList.toggle("is-anykey", mode === "any_key_red");
+
+  const title =
+    mode === "stopped"
+      ? "Interactive: not running (connect host)"
+      : mode === "passive"
+        ? "Interactive: running (keys do nothing)"
+        : "Interactive: running (any key = RED)";
+  els.consoleScanBtn.title = title;
+  els.consoleScanBtn.setAttribute("aria-label", title);
 }
 
 function renderScreens() {
@@ -772,6 +806,7 @@ function connectWs(showToasts) {
   ws.addEventListener("open", () => {
     if (showToasts) toast("Scanner connected.");
     syncAssignmentsToHost();
+    syncInteractiveToHost();
     updateWsIndicator();
   });
   ws.addEventListener("close", () => {
@@ -843,6 +878,78 @@ function updateWsIndicator() {
   const connected = ws?.readyState === WebSocket.OPEN;
   els.wsDot.classList.toggle("ws__dot--ok", Boolean(connected));
   els.wsLabel.textContent = connected ? "scanner: connected" : "scanner: disconnected";
+  renderConsole();
+}
+
+function syncInteractiveToHost() {
+  const connected = ws?.readyState === WebSocket.OPEN;
+  if (!connected) return;
+  const mode = state.console?.interactiveMode || "passive";
+  sendWs({ type: "interactive_control", source: "webapp", mode });
+}
+
+function setInteractiveMode(mode, { didEnableAnyKey } = {}) {
+  state.console = state.console || { interactiveMode: "passive" };
+  state.console.interactiveMode = mode;
+  saveState();
+  renderConsole();
+  sendWs({ type: "interactive_control", source: "webapp", mode });
+}
+
+async function ensureWsConnected() {
+  if (ws?.readyState === WebSocket.OPEN) return true;
+  connectWs(true);
+  await waitForWsOpen(1200);
+  return ws?.readyState === WebSocket.OPEN;
+}
+
+function waitForWsOpen(timeoutMs) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const tick = () => {
+      if (ws?.readyState === WebSocket.OPEN) return resolve(true);
+      if (Date.now() - start > timeoutMs) return resolve(false);
+      window.setTimeout(tick, 50);
+    };
+    tick();
+  });
+}
+
+async function onScanConsoleClick() {
+  const connected = ws?.readyState === WebSocket.OPEN;
+  if (!connected) {
+    toast("Host not reachable. Start `python host/interactive_demo.py --any-key-red` first.");
+    return;
+  }
+  state.console = state.console || { interactiveMode: "passive" };
+  const mode = state.console.interactiveMode || "passive";
+  if (mode === "passive") {
+    setInteractiveMode("any_key_red");
+    toast("Interactive any-key RED enabled.");
+  } else {
+    setInteractiveMode("passive");
+    toast("Interactive any-key RED disabled.");
+  }
+}
+
+function onConsoleKeyDown(e) {
+  if (state.screen !== "kanban") return;
+  const connected = ws?.readyState === WebSocket.OPEN;
+  if (!connected) return;
+  const mode = state.console?.interactiveMode || "passive";
+  if (mode !== "any_key_red") return;
+  if (isTypingContext()) return;
+  // Any key triggers RED.
+  sendWs({ type: "interactive_key", source: "webapp", key: e.key || "" });
+}
+
+function isTypingContext() {
+  const el = document.activeElement;
+  if (!el) return false;
+  if (el instanceof HTMLInputElement) return true;
+  if (el instanceof HTMLTextAreaElement) return true;
+  if (el instanceof HTMLSelectElement) return true;
+  return el instanceof HTMLElement && el.isContentEditable;
 }
 
 function handleWsMessage(raw) {
@@ -851,6 +958,31 @@ function handleWsMessage(raw) {
     msg = JSON.parse(String(raw));
   } catch {
     return;
+  }
+
+  if (msg?.type === "hello" && typeof msg.state === "string") {
+    // Optional: host may include interactive mode.
+    if (typeof msg.interactive_mode === "string") {
+      const m = String(msg.interactive_mode);
+      if (m === "stopped" || m === "passive" || m === "any_key_red") {
+        state.console = state.console || { interactiveMode: "passive" };
+        if (m === "any_key_red") state.console.interactiveMode = "any_key_red";
+        if (m === "passive") state.console.interactiveMode = "passive";
+        saveState();
+        renderConsole();
+      }
+    }
+  }
+
+  if (msg?.type === "interactive_status" && typeof msg.mode === "string") {
+    const m = String(msg.mode);
+    if (m === "stopped" || m === "passive" || m === "any_key_red") {
+      state.console = state.console || { interactiveMode: "passive" };
+      if (m === "any_key_red") state.console.interactiveMode = "any_key_red";
+      if (m === "passive") state.console.interactiveMode = "passive";
+      saveState();
+      renderConsole();
+    }
   }
 
   if (msg?.type === "barcode_result" && typeof msg.code === "string") {
@@ -945,6 +1077,10 @@ function loadState() {
     next.cards = parsed.cards || {};
     next.order = parsed.order || { warehouse: [], kid1: [], kid2: [] };
     next.wsUrl = typeof parsed.wsUrl === "string" ? parsed.wsUrl : DEFAULT_STATE.wsUrl;
+    next.console =
+      parsed.console && typeof parsed.console === "object"
+        ? { ...next.console, ...parsed.console }
+        : next.console;
     normalize(next);
     return next;
   } catch {

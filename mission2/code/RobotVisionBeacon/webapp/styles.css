@@ -763,3 +763,96 @@ main {
   font-size: 13px;
   box-shadow: var(--shadow);
 }
+
+.console {
+  position: fixed;
+  left: 16px;
+  bottom: 18px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 12, 24, 0.72);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45);
+}
+
+.console__btn {
+  appearance: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.console__btn--scan {
+  position: relative;
+}
+
+.console__btn--scan.is-off {
+  filter: saturate(0.2);
+  opacity: 0.75;
+}
+
+.console__btn--scan.is-running {
+  border-color: rgba(255, 80, 80, 0.28);
+  background: rgba(255, 80, 80, 0.08);
+  color: rgba(255, 220, 220, 0.92);
+}
+
+.console__btn--scan.is-anykey {
+  border-color: rgba(255, 80, 80, 0.55);
+  background: rgba(255, 80, 80, 0.16);
+  box-shadow: 0 0 0 3px rgba(255, 80, 80, 0.22), 0 18px 55px rgba(0, 0, 0, 0.45);
+}
+
+.console__btn--scan.is-anykey::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 22px;
+  pointer-events: none;
+  box-shadow: 0 0 18px rgba(255, 60, 60, 0.22);
+  animation: scanPulse 1.15s ease-in-out infinite;
+}
+
+@keyframes scanPulse {
+  0% {
+    opacity: 0.35;
+    transform: scale(0.99);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(0.99);
+  }
+}
+
+.console__btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.console__btn:active {
+  transform: translateY(0);
+}
+
+.console__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}

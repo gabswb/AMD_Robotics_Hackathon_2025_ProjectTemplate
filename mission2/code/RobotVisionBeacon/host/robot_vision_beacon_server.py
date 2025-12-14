@@ -45,6 +45,14 @@ class RobotVisionBeaconServer:
         # Optional: a dashboard (e.g. webapp) can assign a target color state
         # per barcode so the host can drive the phone UI on scans.
         self._barcode_target_state: Dict[str, ColorState] = {}
+        # Optional: web dashboard interactive mode (for "any key = RED" control).
+        # Modes:
+        # - passive: interactive process running, but keys should not trigger RED
+        # - any_key_red: any key triggers RED
+        self._interactive_mode: str = "passive"
+
+    def get_interactive_mode(self) -> str:
+        return self._interactive_mode
 
     def set_state_callback(self, cb: StateCallback) -> None:
         self._state_callback = cb
@@ -129,6 +137,7 @@ class RobotVisionBeaconServer:
                         "type": "hello",
                         "source": "host",
                         "state": self._current_state.value,
+                        "interactive_mode": self._interactive_mode,
                     }
                 )
             )
@@ -152,8 +161,32 @@ class RobotVisionBeaconServer:
             await self._on_assignment_update(data)
         elif msg_type == "assignment_sync":
             await self._on_assignment_sync(data)
+        elif msg_type == "interactive_control":
+            await self._on_interactive_control(data)
+        elif msg_type == "interactive_key":
+            await self._on_interactive_key(data)
         elif msg_type == "heartbeat":
             return
+
+    async def _on_interactive_control(self, data: Dict[str, Any]) -> None:
+        mode = data.get("mode")
+        if not isinstance(mode, str):
+            return
+        mode = mode.strip()
+        if mode not in ("stopped", "passive", "any_key_red"):
+            return
+        if mode == self._interactive_mode:
+            return
+        self._interactive_mode = mode
+        await self._broadcast(
+            {"type": "interactive_status", "source": "host", "mode": self._interactive_mode}
+        )
+
+    async def _on_interactive_key(self, data: Dict[str, Any]) -> None:
+        if self._interactive_mode != "any_key_red":
+            return
+        # Any key from dashboard triggers RED.
+        await self.send_state(ColorState.RED, source="host")
 
     async def _on_assignment_update(self, data: Dict[str, Any]) -> None:
         code = data.get("code") or data.get("barcode")

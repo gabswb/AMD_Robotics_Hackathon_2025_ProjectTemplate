@@ -44,6 +44,36 @@
           <div id="columns" class="columns"></div>
         </section>
 
+        <nav id="floating-console" class="console" aria-label="Quick controls">
+          <button
+            id="console-infer-start-btn"
+            class="console__btn"
+            type="button"
+            aria-label="Start robot inference"
+            title="Start robot inference"
+          >
+            ▶
+          </button>
+          <button
+            id="console-infer-pause-btn"
+            class="console__btn"
+            type="button"
+            aria-label="Pause robot inference"
+            title="Pause robot inference"
+          >
+            ⏸
+          </button>
+          <button
+            id="console-scan-btn"
+            class="console__btn console__btn--scan"
+            type="button"
+            aria-label="Interactive RED control"
+            title="Interactive RED control"
+          >
+            📡
+          </button>
+        </nav>
+
         <aside id="drawer" class="drawer" aria-label="Recorded items" aria-hidden="true">
           <div class="drawer__header">
             <div class="drawer__title">Recorded items</div>
@@ -163,4 +193,3 @@
     <script type="module" src="./app.js"></script>
   </body>
 </html>
-
