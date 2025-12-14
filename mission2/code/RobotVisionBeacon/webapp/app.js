@@ -70,6 +70,9 @@ const els = {
   closeDrawerBtn: $("#close-drawer-btn"),
   recordedItemsList: $("#recorded-items-list"),
   addItemBtn: $("#add-item-btn"),
+  exportItemsBtn: $("#export-items-btn"),
+  importItemsBtn: $("#import-items-btn"),
+  importFileInput: /** @type {HTMLInputElement} */ ($("#import-file-input")),
   modalOverlay: $("#modal-overlay"),
   itemModal: $("#item-modal"),
   itemModalTitle: $("#item-modal-title"),
@@ -96,7 +99,10 @@ const els = {
 
 init();
 
-function init() {
+async function init() {
+  // Try to auto-load recorded items from repo file if localStorage is empty
+  await tryLoadRecordedItemsFromRepo();
+  
   els.wsUrl.value = state.wsUrl || DEFAULT_STATE.wsUrl;
 
   els.enterBtn.addEventListener("click", () => navigate("kanban"));
@@ -112,6 +118,9 @@ function init() {
   els.recordedItemsBtn.addEventListener("click", toggleDrawer);
   els.closeDrawerBtn.addEventListener("click", closeDrawer);
   els.addItemBtn.addEventListener("click", () => openItemModal({ mode: "create" }));
+  els.exportItemsBtn?.addEventListener("click", exportRecordedItems);
+  els.importItemsBtn?.addEventListener("click", () => els.importFileInput?.click());
+  els.importFileInput?.addEventListener("change", importRecordedItems);
 
   els.modalOverlay.addEventListener("click", () => {
     closeItemModal();
@@ -1153,6 +1162,91 @@ function saveState() {
     } catch {
       // ignore
     }
+  }
+}
+
+/**
+ * Export recorded items database to a downloadable JSON file.
+ * This allows the item database to be version-controlled in git.
+ */
+function exportRecordedItems() {
+  const data = {
+    _version: 1,
+    _exportedAt: new Date().toISOString(),
+    recordedItems: state.recordedItems,
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "recorded_items.json";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Exported recorded items to recorded_items.json");
+}
+
+/**
+ * Import recorded items from a JSON file.
+ * Merges with existing items (new barcodes override existing ones).
+ */
+async function importRecordedItems(e) {
+  const file = e.target?.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const items = data.recordedItems || data;
+    if (typeof items !== "object" || items === null) {
+      toast("Invalid JSON: expected recordedItems object");
+      return;
+    }
+    let count = 0;
+    for (const [barcode, item] of Object.entries(items)) {
+      if (typeof barcode === "string" && item && typeof item === "object") {
+        state.recordedItems[barcode] = { ...state.recordedItems[barcode], ...item };
+        count++;
+      }
+    }
+    saveState();
+    renderDrawer();
+    toast(`Imported ${count} recorded item(s)`);
+  } catch (err) {
+    toast("Failed to import: " + (err.message || err));
+  } finally {
+    // Reset input so same file can be re-imported
+    els.importFileInput.value = "";
+  }
+}
+
+/**
+ * Try to auto-load recorded items from the repo file (recorded_items.json).
+ * Only loads if local recordedItems is empty (no items in localStorage).
+ */
+async function tryLoadRecordedItemsFromRepo() {
+  // Only auto-load if we have no recorded items yet
+  if (Object.keys(state.recordedItems).length > 0) return;
+  
+  try {
+    const res = await fetch("./recorded_items.json");
+    if (!res.ok) return; // File doesn't exist, that's fine
+    const data = await res.json();
+    const items = data.recordedItems || data;
+    if (typeof items !== "object" || items === null) return;
+    
+    let count = 0;
+    for (const [barcode, item] of Object.entries(items)) {
+      if (typeof barcode === "string" && item && typeof item === "object") {
+        state.recordedItems[barcode] = item;
+        count++;
+      }
+    }
+    if (count > 0) {
+      saveState();
+      console.log(`[Auto-load] Loaded ${count} recorded item(s) from recorded_items.json`);
+    }
+  } catch {
+    // Silent fail - file might not exist or be invalid
   }
 }
 

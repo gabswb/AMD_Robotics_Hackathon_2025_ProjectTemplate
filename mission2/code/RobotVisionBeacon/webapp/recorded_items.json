@@ -1,0 +1,5 @@
+{
+  "_version": 1,
+  "_description": "Recorded items database for Santa's Happiness Warehouse. Export from the webapp to update this file.",
+  "recordedItems": {}
+}
