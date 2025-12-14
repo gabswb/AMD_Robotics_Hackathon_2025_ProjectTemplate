@@ -1,0 +1,69 @@
+# General
+.DS_Store
+**/.DS_Store
+.history/
+.idea/
+.vscode/
+*.log
+
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+
+# Node / web (optional)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.parcel-cache/
+.next/
+out/
+dist/
+build/
+
+# Xcode / Swift
+DerivedData/
+*.xcuserstate
+*.xcuserdata
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.swp
+*.swo
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
