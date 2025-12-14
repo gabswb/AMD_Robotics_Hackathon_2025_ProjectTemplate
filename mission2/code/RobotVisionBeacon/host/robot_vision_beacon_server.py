@@ -42,6 +42,9 @@ class RobotVisionBeaconServer:
         self._current_state: ColorState = ColorState.RED
         self._state_callback: Optional[StateCallback] = None
         self._barcode_callback: Optional[BarcodeCallback] = None
+        # Optional: a dashboard (e.g. webapp) can assign a target color state
+        # per barcode so the host can drive the phone UI on scans.
+        self._barcode_target_state: Dict[str, ColorState] = {}
 
     def set_state_callback(self, cb: StateCallback) -> None:
         self._state_callback = cb
@@ -98,6 +101,18 @@ class RobotVisionBeaconServer:
             return_exceptions=True,
         )
 
+    async def _broadcast_except(self, payload: Dict[str, Any], exclude: Any) -> None:
+        if not self._clients:
+            return
+        data = json.dumps(payload)
+        recipients = [ws for ws in list(self._clients) if ws is not exclude]
+        if not recipients:
+            return
+        await asyncio.gather(
+            *[self._safe_send(ws, data) for ws in recipients],
+            return_exceptions=True,
+        )
+
     async def _safe_send(self, ws: Any, data: str) -> None:
         try:
             await ws.send(data)
@@ -118,11 +133,11 @@ class RobotVisionBeaconServer:
                 )
             )
             async for message in websocket:
-                await self._handle_message(message)
+                await self._handle_message(message, websocket)
         finally:
             self._clients.discard(websocket)
 
-    async def _handle_message(self, message: str) -> None:
+    async def _handle_message(self, message: str, websocket: Any) -> None:
         try:
             data = json.loads(message)
         except json.JSONDecodeError:
@@ -130,13 +145,62 @@ class RobotVisionBeaconServer:
 
         msg_type = data.get("type")
         if msg_type == "state_update":
-            await self._on_state_update(data)
+            await self._on_state_update(data, websocket)
         elif msg_type == "barcode_result":
-            await self._on_barcode_result(data)
+            await self._on_barcode_result(data, websocket)
+        elif msg_type == "assignment_update":
+            await self._on_assignment_update(data)
+        elif msg_type == "assignment_sync":
+            await self._on_assignment_sync(data)
         elif msg_type == "heartbeat":
             return
 
-    async def _on_state_update(self, data: Dict[str, Any]) -> None:
+    async def _on_assignment_update(self, data: Dict[str, Any]) -> None:
+        code = data.get("code") or data.get("barcode")
+        if not code or not isinstance(code, str):
+            return
+        code = code.strip()
+        if not code:
+            return
+
+        state_str = data.get("state")
+        if state_str is None:
+            self._barcode_target_state.pop(code, None)
+            return
+
+        if not isinstance(state_str, str):
+            return
+        state_str = state_str.strip().upper()
+        if state_str in ("", "NONE", "NULL"):
+            self._barcode_target_state.pop(code, None)
+            return
+
+        try:
+            state = ColorState(state_str)
+        except ValueError:
+            return
+
+        self._barcode_target_state[code] = state
+
+    async def _on_assignment_sync(self, data: Dict[str, Any]) -> None:
+        targets = data.get("targets")
+        if not isinstance(targets, dict):
+            return
+        next_map: Dict[str, ColorState] = {}
+        for code, state_str in targets.items():
+            if not isinstance(code, str) or not isinstance(state_str, str):
+                continue
+            code = code.strip()
+            state_str = state_str.strip().upper()
+            if not code or state_str in ("", "NONE", "NULL"):
+                continue
+            try:
+                next_map[code] = ColorState(state_str)
+            except ValueError:
+                continue
+        self._barcode_target_state = next_map
+
+    async def _on_state_update(self, data: Dict[str, Any], websocket: Any) -> None:
         state_str = data.get("state")
         if not state_str:
             return
@@ -149,8 +213,10 @@ class RobotVisionBeaconServer:
         self._current_state = state
         if self._state_callback is not None:
             await self._state_callback(state, data)
+        # Re-broadcast client state updates so dashboards (e.g. webapp) can react.
+        await self._broadcast_except(data, exclude=websocket)
 
-    async def _on_barcode_result(self, data: Dict[str, Any]) -> None:
+    async def _on_barcode_result(self, data: Dict[str, Any], websocket: Any) -> None:
         code = data.get("code")
         symbology = data.get("symbology", "")
         confidence = float(data.get("confidence", 0.0))
@@ -166,6 +232,14 @@ class RobotVisionBeaconServer:
         )
         if self._barcode_callback is not None:
             await self._barcode_callback(result)
+        # Re-broadcast barcode results so dashboards (e.g. webapp) can match cards.
+        await self._broadcast_except(data, exclude=websocket)
+
+        # If a dashboard assigned this barcode to a "kid list", drive the phone
+        # UI color from the host to indicate which list it belongs to.
+        target_state = self._barcode_target_state.get(code)
+        if target_state is not None:
+            await self.send_state(target_state, source="host")
 
     async def run(self) -> None:
         """

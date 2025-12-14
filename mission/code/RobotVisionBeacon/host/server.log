@@ -1,5 +1,0 @@
-RobotVisionBeaconServer listening on ws://0.0.0.0:8765
-Host IPv4 addresses (use one in the iOS app):
-  - 10.33.1.170  (ws://10.33.1.170:8765)
-  - 169.254.119.243  (ws://169.254.119.243:8765)
-Press Ctrl+C to stop.

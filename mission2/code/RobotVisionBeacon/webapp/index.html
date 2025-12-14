@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Santa’s Happiness Warehouse</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <section id="welcome-screen" class="screen screen--active" aria-label="Welcome">
+        <div class="bg bg--welcome" aria-hidden="true"></div>
+        <div class="welcome">
+          <h1 class="welcome__title">Welcome to Santa’s Happiness Warehouse !</h1>
+          <button id="enter-btn" class="btn btn--primary btn--xl" type="button">
+            Entry →
+          </button>
+        </div>
+      </section>
+
+      <section id="kanban-screen" class="screen" aria-label="Warehouse Board">
+        <header class="topbar">
+          <div class="topbar__left">
+            <div class="brand">Santa’s Happiness Warehouse</div>
+            <div class="ws" title="Scanner connection">
+              <span class="ws__dot" id="ws-dot" aria-hidden="true"></span>
+              <span class="ws__label" id="ws-label">scanner: disconnected</span>
+            </div>
+          </div>
+          <div class="topbar__right">
+            <button
+              id="recorded-items-btn"
+              class="icon-btn"
+              type="button"
+              aria-label="Open recorded items"
+              title="Recorded items"
+            >
+              🎁
+            </button>
+          </div>
+        </header>
+
+        <section class="board" aria-label="Kanban board">
+          <div id="columns" class="columns"></div>
+        </section>
+
+        <aside id="drawer" class="drawer" aria-label="Recorded items" aria-hidden="true">
+          <div class="drawer__header">
+            <div class="drawer__title">Recorded items</div>
+            <div class="drawer__headerActions">
+              <button id="add-item-btn" class="btn btn--ghost" type="button">+ Item</button>
+              <button id="close-drawer-btn" class="icon-btn" type="button" aria-label="Close">
+                ✕
+              </button>
+            </div>
+          </div>
+          <div class="drawer__content">
+            <div id="recorded-items-list" class="recorded-list" aria-label="Recorded items list"></div>
+
+            <div class="drawer__section">
+              <div class="drawer__sectionTitle">Scanner (WebSocket)</div>
+              <div class="ws-settings">
+                <label class="field">
+                  <span class="field__label">URL</span>
+                  <input
+                    id="ws-url"
+                    class="input"
+                    type="text"
+                    inputmode="url"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="ws://localhost:8765"
+                  />
+                </label>
+                <div class="ws-settings__actions">
+                  <button id="ws-connect-btn" class="btn btn--primary" type="button">Connect</button>
+                  <button id="ws-disconnect-btn" class="btn btn--ghost" type="button">Disconnect</button>
+                </div>
+                <p class="hint">
+                  Listens for <code>barcode_result</code> → “putting away…” and <code>state_update: RED</code> →
+                  “collected”.
+                </p>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div id="modal-overlay" class="modal-overlay" hidden></div>
+
+        <section id="item-modal" class="modal" role="dialog" aria-modal="true" aria-label="Recorded item" hidden>
+          <div class="modal__header">
+            <div class="modal__title" id="item-modal-title">New item</div>
+            <button id="item-modal-close" class="icon-btn" type="button" aria-label="Close">✕</button>
+          </div>
+          <form id="item-form" class="modal__body">
+            <input id="item-editing-barcode" type="hidden" />
+
+            <label class="field">
+              <span class="field__label">Picture</span>
+              <input id="item-image" class="input" type="file" accept="image/*" />
+            </label>
+            <div class="image-preview">
+              <img id="item-image-preview" alt="" />
+            </div>
+
+            <label class="field">
+              <span class="field__label">Item name</span>
+              <input id="item-name" class="input" type="text" required placeholder="e.g. Toy car" />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Item id (relative)</span>
+              <input id="item-id" class="input" type="text" required placeholder="e.g. 01" />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Barcode (primary key)</span>
+              <input
+                id="item-barcode"
+                class="input"
+                type="text"
+                required
+                placeholder="e.g. 1234567890123"
+                autocomplete="off"
+              />
+            </label>
+
+            <div class="modal__actions">
+              <button id="item-save-btn" class="btn btn--primary" type="submit">Save</button>
+              <button id="item-cancel-btn" class="btn btn--ghost" type="button">Cancel</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="card-modal" class="modal" role="dialog" aria-modal="true" aria-label="Create card" hidden>
+          <div class="modal__header">
+            <div class="modal__title">Create card from recorded item</div>
+            <button id="card-modal-close" class="icon-btn" type="button" aria-label="Close">✕</button>
+          </div>
+          <div class="modal__body">
+            <div class="hint">Pick a recorded item to create a warehouse card.</div>
+            <div id="card-create-list" class="recorded-list"></div>
+            <div class="modal__actions">
+              <button id="card-cancel-btn" class="btn btn--ghost" type="button">Close</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section id="finish-screen" class="screen" aria-label="Finish">
+        <div class="bg bg--finish" aria-hidden="true"></div>
+        <div class="finish">
+          <h1 class="finish__title">Go for delivery, Papa Santa!</h1>
+          <button id="return-btn" class="btn btn--primary btn--xl" type="button" hidden>
+            return →
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
+
