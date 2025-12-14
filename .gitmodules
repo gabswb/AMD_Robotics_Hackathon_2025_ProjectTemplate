@@ -1,0 +1,3 @@
+[submodule "mission2/code/lerobot"]
+	path = mission2/code/lerobot
+	url = https://github.com/gabswb/lerobot
