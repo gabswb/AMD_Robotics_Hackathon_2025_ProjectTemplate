@@ -1,4 +1,6 @@
-# AMD_Robotics_Hackathon_2025_[Project Name]
+# AMD Open Robotics Hackathon 2025
+
+Pick, Scans, Sort.
 
 ## Team Information
 
@@ -6,7 +8,7 @@
 
 **Summary:** *Two arms, one model to rule them both. Our bi-manual robot picks, scans, and sorts packages autonomously—an end-to-end, modular solution built for accurate and scalable warehouse automation.*
 
-<video src=".assets/IMG_2818.mp4" controls></video>
+[▶️ Watch Demo Video](.assets/time-lapse.mp4)
 
 
 ## Submission Details
@@ -19,7 +21,8 @@
 
 ### 3. Technical implementations
 - *Teleoperation / Dataset capture*
- <video src=".assets/IMG_2806.mp4" controls></video>
+  
+  [▶️ Watch Teleoperation Video](.assets/teleop.mp4)
     
 - *Training*
 We trained ACT on a compact dataset of 150 episodes using one top camera, one scan-state camera, and two arm-mounted cameras, following the LeRobot training recipe for 35K steps on AMD MI300X. To improve robustness, we fine-tuned the model on 30 failure-case episodes.
@@ -29,8 +32,6 @@ OS: ubuntu 24.04
 ROCm v6.3+
 PyTorch v2.7.x
 LeRobot: v0.4.1
-    - <video src=".assets/IMG_2818.mp4" controls></video>
-
 
 ### 4. Ease of use
 - Generalization: The model successfully generalizes to all trained objects and also to new, previously unseen objects.
@@ -39,7 +40,8 @@ LeRobot: v0.4.1
 
 ## Additional Links
 Video showcase the high accuracy of our solution:
- <video src=".assets/demo.mp4" controls></video>
+
+[▶️ Watch High Accuracy Demo](.assets/demo.mp4)
 
 Model weights on HuggingFace hub: https://huggingface.co/tms-gvd/act-finetune-35k
 
